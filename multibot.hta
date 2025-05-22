@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Discord Webhook Messenger</title>
+  <hta:application 
+    id="webhookApp"
+    applicationname="WebhookMessenger"
+    border="thin"
+    caption="yes"
+    maximizebutton="no"
+    minimizebutton="yes"
+    sysmenu="yes"
+    scroll="no"
+    singleinstance="yes"
+  />
+  <style>
+    body {
+      font-family: Segoe UI, sans-serif;
+      background-color: black;
+      color: #ffffff;
+      padding: 20px;
+    }
+    input, button, textarea {
+      font-size: 14px;
+      margin: 5px;
+      padding: 5px;
+    }
+    input[type=text], textarea {
+      width: 95%;
+      border: none;
+      border-radius: 4px;
+    }
+    textarea {
+      height: 80px;
+    }
+    button {
+      background-color: #7289da;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #5b6eae;
+    }
+    #webhookList {
+      margin-top: 10px;
+      max-height: 100px;
+      overflow-y: auto;
+      background: #23272a;
+      padding: 5px;
+      border-radius: 4px;
+    }
+    #log {
+      margin-top: 10px;
+      height: 100px;
+      overflow-y: auto;
+      background: #23272a;
+      padding: 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .webhook-item {
+      margin: 2px 0;
+    }
+    .webhook-remove {
+      color: red;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Discord Webhook Messenger.</h2>
+  <p>Made By xcorr.</p>
+  <p>Github: <a href = https://github.com/xcorrr>Here.</a></p>
+
+  <label>Webhook URL:</label><br>
+  <input type="text" id="webhookUrl" placeholder="https://discord.com/api/webhooks/..."><br>
+  <button onclick="addWebhook()">Add Webhook</button>
+
+  <div id="webhookList"></div>
+
+  <label>Message:</label><br>
+  <textarea id="messageBox" placeholder="Enter your message here..."></textarea><br>
+
+  <button onclick="sendToAll()">Send to All</button>
+
+  <div id="log"></div>
+
+  <script language="VBScript">
+    Dim webhookURLs()
+    Dim count
+    count = 0
+
+    Sub addWebhook()
+      Dim url
+      url = document.getElementById("webhookUrl").value
+      If url = "" Then
+        MsgBox "Please enter a valid webhook URL.", vbExclamation
+        Exit Sub
+      End If
+
+      ReDim Preserve webhookURLs(count)
+      webhookURLs(count) = url
+
+      Dim el
+      Set el = document.createElement("div")
+      el.className = "webhook-item"
+      el.id = "wh" & count
+      el.innerHTML = "[" & (count + 1) & "] " & url & " <span class='webhook-remove' onclick='removeWebhook(" & count & ")'>[remove]</span>"
+      document.getElementById("webhookList").appendChild(el)
+
+      count = count + 1
+      document.getElementById("webhookUrl").value = ""
+    End Sub
+
+    Sub removeWebhook(index)
+      If index < 0 Or index >= count Then Exit Sub
+      document.getElementById("wh" & index).outerHTML = ""
+
+      webhookURLs(index) = "" ' Mark as deleted
+      document.getElementById("log").innerHTML = document.getElementById("log").innerHTML & "<div>❌ Webhook #" & (index + 1) & " removed.</div>"
+    End Sub
+
+    Sub sendToAll()
+      Dim msg
+      msg = document.getElementById("messageBox").value
+      If msg = "" Then
+        MsgBox "Please enter a message.", vbExclamation
+        Exit Sub
+      End If
+
+      Dim i
+      Dim sentCount
+      sentCount = 0
+
+      For i = 0 To count - 1
+        If webhookURLs(i) <> "" Then
+          If sendWebhook(webhookURLs(i), msg) Then
+            document.getElementById("log").innerHTML = document.getElementById("log").innerHTML & "<div>✅ Sent to #" & (i + 1) & "</div>"
+            sentCount = sentCount + 1
+          Else
+            document.getElementById("log").innerHTML = document.getElementById("log").innerHTML & "<div>⚠️ Failed to send to #" & (i + 1) & "</div>"
+          End If
+        End If
+      Next
+
+      If sentCount = 0 Then
+        MsgBox "No messages sent.", vbInformation
+      Else
+        MsgBox "Message sent to " & sentCount & " webhook(s).", vbInformation
+      End If
+    End Sub
+
+    Function sendWebhook(url, content)
+      On Error Resume Next
+      Dim http, json
+      Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
+      http.Open "POST", url, False
+      http.SetRequestHeader "Content-Type", "application/json"
+      json = "{""content"":""" & Replace(content, """", "\""") & """}"
+      http.Send json
+
+      If http.Status = 204 Then
+        sendWebhook = True
+      Else
+        sendWebhook = False
+      End If
+
+      Set http = Nothing
+    End Function
+  </script>
+</body>
+</html>
